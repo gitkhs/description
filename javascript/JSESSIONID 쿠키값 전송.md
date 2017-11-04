@@ -1,7 +1,5 @@
 ## 크로스사이트 도메인 AJAX
 
-![CORS flow](https://www.html5rocks.com/static/images/cors_flow.png)
-
 ### HTTP Request
 ajax 요청시 **withCredentials**값 설정 하며
 **contentType** 은 `application/x-www-form-urlencoded`, `multipart/form-data`, `text/plain` 을 사용한다.
@@ -60,4 +58,5 @@ if(isset($hd['origin'])) {
 
 ### 참고자료
 [Using CORS](https://www.html5rocks.com/en/tutorials/cors/?redirect_from_locale=ko)
+
 [cross domain ajax call](http://paulina0206.tistory.com/m/entry/cross-domain-ajax-call-%ED%95%A0-%EB%95%8C-JSESSIONID-%EC%BF%A0%ED%82%A4%EA%B0%92-%EC%A0%84%EC%86%A1%ED%95%98%EA%B8%B0)
