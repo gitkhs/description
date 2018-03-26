@@ -1,0 +1,150 @@
+
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>s75-3</title>
+<style>
+html,body{height:100%;padding:0;margin:0}
+.post{margin:5px;padding:5px;float:left;width:340px;height:200px;border:1px solid #666;overflow:hidden}
+.post a,.post a:hover, .post a:link{text-decoration: none;color:#666}
+.post p{background:#ddd;margin:5px}
+#snack{background:red;color:#fff;line-height:35px;text-align: center}
+</style>
+</head>
+<body>
+    <section id="snack"></section>
+    <section id="todo"></section>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const sel =(v, el = document)=>el.querySelector(v);
+const el =(tag, ...attr)=>{
+	const el = document.createElement(tag);
+	for(let i = 0; i < attr.length;){
+	const k = attr[i++], v = attr[i++];
+		if(typeof el[k] == 'function') el[k](...(Array.isArray(v) ? v : [v]));
+		else if(k[0] == '@') el.style[k.substr(1)] = v;	
+		else el[k] = v;
+	} 
+	return el;
+};
+const d64 =v=>decodeURIComponent(atob(v).split('').map(c=>'%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+const snack =v=>{
+    sel('#snack').innerHTML = v;
+    setTimeout(_=>sel('#snack').innerHTML = '', 3500);
+};
+const Task = class{
+	static title(a, b){return a._title > b._title;}
+	static date(a, b){return a._date > b._date;} 
+
+	constructor(title, date = new Date()){
+		 if(!title) throw 'invalid title'; else this._title = title;
+		this._date = date;
+		this._list = [];
+	}
+	add(task){if(task instanceof Task) this._list.push(task); else throw 'invalid';}
+	remove(task){
+		const list = this._list;
+		if(list.includes(task)) list.splice(list.indexOf(task), 1);
+	}
+	getResult(sort, stateGroup){
+		const list = this._list;
+		return {
+			item:this,
+			children:(!stateGroup ? [...list].sort(sort) : [
+                ...list.filter(v=>!v.isComplete()).sort(sort), 
+                ...list.filter(v=>v.isComplete()).sort(sort)
+            ]).map(v=>v.getResult(sort, stateGroup))
+	    };
+	}
+	isComplete(){throw 'override';}
+	get title(){return this._title;}
+	get date(){return this._date.toUTCString();}
+};
+const TaskItem = class extends Task{
+	constructor(title, date){
+		super(title, date);
+		this._isComplete = false;
+	}
+	isComplete(){return this._isComplete;}
+	toggle(){this._isComplete = !this._isComplete;}
+};
+const TaskList = class extends Task{
+	constructor(title, date){super(title, date);}
+	isComplete(){}
+};
+const DomRenderer = class{
+    constructor(list, parent){
+		this._parent = parent;
+		this._list = list;
+		this._sort = 'title';
+	}
+	add(parent, title, date){
+		parent.add(new TaskItem(title, date));
+		this.render();
+	}
+	remove(parent, task){	
+		parent.remove(task);
+		this.render();
+	}
+	toggle(task){
+		if(task instanceof TaskItem){
+			task.toggle();
+			this.render();
+		}
+	}
+	render(){
+		const parent = this._parent;
+		parent.innerHTML = '';
+        parent.appendChild('title,date'.split(',').reduce((nav,c)=>(
+            nav.appendChild(
+                el('button', 'innerHTML', c, 
+                    '@fontWeight', this._sort == c ? 'bold' : 'normal',
+                    'addEventListener', ['click', e=>(this._sort = Task[c], this.render())])
+            ), nav
+        ), el('nav')));
+        this._render(parent, this._list, this._list.getResult(Task[this._sort]), 0);
+    }
+    _render(base, parent, {item, children}, depth){
+        const temp = [];
+        base.style.paddingLeft = depth * 10 + 'px';
+        if(item instanceof TaskList){
+            temp.push(
+                el('h2', 'innerHTML', item.title),
+            );
+        }else{
+            temp.push(
+                el('h3', 'innerHTML', item.title, 
+                    '@textDecoration', item.isComplete() ? 'line-through' : 'none'), 
+                el('time', 'innerHTML', item.date, 'datetime', item.date),
+                el('button', 'innerHTML', item.isComplete() ? 'progress' : 'complete', 
+                    'addEventListener', ['click', _=>this.toggle(item)]
+                ),
+                el('button', 'innerHTML', 'remove',
+                    'addEventListener', ['click', _=>this.remove(parent, item)]
+                )
+            )
+        }
+        const sub = el('section', 
+            'appendChild', el('input', 'type', 'text'),
+            'appendChild', el('button', 'innerHTML', 'addTask',
+                'addEventListener', ['click', e=>this.add(item, e.target.previousSibling.value)])
+        );
+        children.forEach(v=>this._render(sub, item, v, depth + 1));
+        temp.push(sub);
+        temp.forEach(v=>base.appendChild(v));
+	}
+};
+const list1 = new TaskList('s75');
+const item1 = new TaskItem("3강교안작성");
+list1.add(item1);
+const sub1 = new TaskItem("코드정리");
+item1.add(sub1);
+const subsub1 = new TaskItem("subsub1");
+sub1.add(subsub1);
+
+const todo = new DomRenderer(list1, sel('#todo'));
+todo.render();
+</script>
+</body>
+</html>
